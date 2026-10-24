@@ -83,13 +83,11 @@ config_android_sdk ()
     mkdir -p $android_sdk
     test -f $downloads/$cmdline_tools || wget -O $downloads/$cmdline_tools https://dl.google.com/android/repository/$cmdline_tools
     unzip -n $downloads/$cmdline_tools -d $android_sdk
-    if ! test -f $android_sdk/licenses/android-sdk-license
-    then
-        echo "Android SDK licenses not accepted. Please run:"
-        echo "  $(pwd)/$android_sdk/cmdline-tools/bin/sdkmanager --sdk_root=$(pwd)/$android_sdk --licenses"
-        echo "Then re-run this script."
-        exit 1
-    fi
+    
+    # الموافقة التلقائية على تراخيص Android SDK لتعمل بسلاسة داخل GitHub Actions
+    mkdir -p $android_sdk/licenses
+    yes | $android_sdk/cmdline-tools/bin/sdkmanager --sdk_root=$(pwd)/$android_sdk --licenses || true
+    
     $android_sdk/cmdline-tools/bin/sdkmanager --sdk_root=$(pwd)/$android_sdk --install "platforms;android-$sdk_api" "build-tools;$build_tools"
 }
 
