@@ -84,10 +84,12 @@ config_android_sdk ()
     test -f $downloads/$cmdline_tools || wget -O $downloads/$cmdline_tools https://dl.google.com/android/repository/$cmdline_tools
     unzip -n $downloads/$cmdline_tools -d $android_sdk
     
-    # الموافقة التلقائية على تراخيص Android SDK لتعمل بسلاسة داخل GitHub Actions
+    # القبول التلقائي لرخص SDK لتجنب التوقف في الـ CI/CD
     mkdir -p $android_sdk/licenses
+    printf "d56f51874724512419d83ad06ecff08e219ca910\n" > $android_sdk/licenses/android-sdk-license
+    printf "84831b9409646a918e30573bab4c9c91346d8abd\n" > $android_sdk/licenses/android-sdk-preview-license
     yes | $android_sdk/cmdline-tools/bin/sdkmanager --sdk_root=$(pwd)/$android_sdk --licenses || true
-    
+
     $android_sdk/cmdline-tools/bin/sdkmanager --sdk_root=$(pwd)/$android_sdk --install "platforms;android-$sdk_api" "build-tools;$build_tools"
 }
 
@@ -124,7 +126,7 @@ config_gnutls ()
     gmpdir=$(pwd)/$gmp
     nettledir=$(pwd)/$nettle
     test -e $nettle/nettle || ln -s . $nettle/nettle  # gnutls includes nettle files with nettle/ prefix
-    (cd $gnutls && ./configure --host=$host --without-p11-kit --without-idn --without-brotli --without-zstd --without-tpm --without-tpm2 --with-included-libtasn1 --with-included-unistring -disable-cxx \
+    (cd $gnutls && ./configure --host=$host --without-p11-kit --without-idn --without-brotli --without-zstd --without-tpm --without-tpm2 --with-included-libtasn1 --with-included-unistring --disable-cxx \
                                --disable-maintainer-mode --disable-static --disable-doc --disable-tools --disable-tests \
                                CC=$CC PKG_CONFIG=true \
                                GMP_CFLAGS="-I$gmpdir -L$gmpdir/.libs -lgmp" GMP_LIBS=$gmpdir/.libs/libgmp.so \
@@ -137,7 +139,8 @@ config_openldap ()
 {
     download $openldap ftp://ftp.openldap.org/pub/OpenLDAP/openldap-release/$openldap.tgz
     cp $gnutls/build-aux/ltmain.sh $gnutls/build-aux/config.guess $gnutls/build-aux/config.sub $openldap/build
-    (cd $openldap && aclocal && autoconf && $run_configure --with-yielding_select=yes --disable-bdb --disable-hdb ac_cv_func_memcmp_working=yes CPPFLAGS=-DANDROID CC=$host-gcc && make $makeflags)
+    # استخدام autoreconf لتوليد الملفات المخصصة وتصحيح استخدام CC ليناسب Clang في NDK r28c
+    (cd $openldap && autoreconf -fi && $run_configure --with-yielding_select=yes --disable-bdb --disable-hdb ac_cv_func_memcmp_working=yes CPPFLAGS=-DANDROID CC=$CC && make $makeflags)
 }
 
 config_cups ()
