@@ -1,26 +1,36 @@
-name: Build APK
+name: Build Wine APK
 
 on:
   workflow_dispatch:
+    inputs:
+      release_version:
+        description: 'Wine release version'
+        required: false
+        default: '9.0'
 
 jobs:
   build:
-    runs-on: ubuntu-20.04  # تم التغيير هنا لاستخدام إصدار أقدم يدعم الحزم القديمة
+    runs-on: ubuntu-latest
+    
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout Repository
+        uses: actions/checkout@v4
 
-      - name: Install Dependencies
+      - name: Install System Dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y wget git flex bison automake libtool autoconf build-essential unzip python-is-python2 python3 groff-base pkg-config libfreetype6-dev openjdk-8-jdk-headless librsvg2-bin cmake
+          sudo apt-get install -y wget git flex bison automake libtool autoconf build-essential unzip python3 groff-base pkg-config libfreetype6-dev openjdk-17-jdk-headless librsvg2-bin cmake make
 
-      - name: Run Build Script
+      - name: Make Script Executable & Run Build
         run: |
           cd apk-builder
-          ./build-apks 6.0-rc6
+          chmod +x build-apks
+          # تشغيل السكربت وتمرير إصدار Wine 9.0 (أو الإصدار المحدد من القائمة)
+          ./build-apks "${{ github.event.inputs.release_version }}"
 
-      - uses: actions/upload-artifact@v4
+      - name: Upload APK Artifacts
+        uses: actions/upload-artifact@v4
         with:
-          name: apks
+          name: wine-9.0-apks
           path: apk-builder/**/*.apk
           
